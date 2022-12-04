@@ -1,5 +1,6 @@
 const User = require("../models/user")
 const EmailVerificationToken = require("../models/emailVerificationToken")
+const PasswordResetToken = require("../models/passwordResetToken")
 const bcrypt = require("bcrypt")
 const nodemailer = require("nodemailer")
 const { isValidObjectId } = require("mongoose")
@@ -105,4 +106,18 @@ exports.resendEmailVerificationToken = async (req, res) => {
   })
 
   return res.status(200).json({ success: "Please check your email" })
+}
+
+exports.forgetPassword = async (req, res) => {
+  const { email } = req.body
+  if (!email) return sendError(res, "Email is required!")
+
+  const user = await User.findOne({ email })
+  if (!user) return sendError(res, "User not found!", 404)
+
+  const tokenIsPresent = await PasswordResetToken.findOne({ owner: user._id })
+  if (tokenIsPresent)
+    return res.status(401).json({
+      error: "Only one OTP can be requested within an hour.Please wait!",
+    })
 }
