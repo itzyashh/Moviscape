@@ -1,11 +1,12 @@
 const User = require("../models/user")
 const EmailVerificationToken = require("../models/emailVerificationToken")
 const PasswordResetToken = require("../models/passwordResetToken")
-const bcrypt = require("bcrypt")
+const crypto = require("crypto")
 const nodemailer = require("nodemailer")
 const { isValidObjectId } = require("mongoose")
 const { generateOTP, generateMailTransporter } = require("../utils/mail")
 const { sendError } = require("../utils/helper")
+const { generateRandomByte } = require("../utils/helper")
 
 exports.create = async (req, res) => {
   const { name, email, password } = req.body
@@ -120,4 +121,25 @@ exports.forgetPassword = async (req, res) => {
     return res.status(401).json({
       error: "Only one OTP can be requested within an hour.Please wait!",
     })
+
+  const token = await generateRandomByte()
+  const newPasswordResetToken = await PasswordResetToken({
+    owner: user._id,
+    token,
+  })
+  await newPasswordResetToken.save()
+
+  const resetPasswordUrl = `http://localhost:3000/resetPassword?token=${token}&id=${user._id}`
+
+  var transport = generateMailTransporter()
+  transport.sendMail({
+    from: "moviscape@server.com",
+    to: user.email,
+    subject: "Reset Password Link",
+    html: `
+    <p>Click here to reset your password</p>
+    <a href="${resetPasswordUrl}">Change password</a>
+    `,
+  })
+  res.json({ success: "Check email for password reset link" })
 }

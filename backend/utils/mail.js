@@ -1,3 +1,4 @@
+const nodemailer = require("nodemailer")
 exports.generateOTP = (length = 6) => {
   // Declare a digits variable
   // which stores all digits
